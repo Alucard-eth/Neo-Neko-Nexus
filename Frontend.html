@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeless Tabbies Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron&display=swap');
+
+
+        body {
+            background-color: #000;
+            color: #fff;
+            text-align: center;
+        }
+
+        #game-container {
+            display: none;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 48px;
+            color: #00ff41;
+            text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41, 0 0 40px #00ff41;
+        }
+
+        #not-allowed {
+            display: none;
+        }
+
+        #overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        }
+
+        #overlay-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        color: white;
+        }
+
+
+        button {
+        padding: 10px 20px;
+        font-size: 16px;
+        }
+
+        #restart-btn {
+        background-color: #00ff41;
+        color: #000;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-family: 'Orbitron', sans-serif;
+        text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41, 0 0 40px #00ff41;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        }
+
+        #restart-btn:hover {
+        background-color: #000;
+        color: #00ff41;
+        text-shadow: none;
+        }
+
+        #game-over {
+        display: none;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 48px;
+        color: #ff0000;
+        text-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 30px #ff0000, 0 0 40px #ff0000;
+        }
+
+        #overlay-content h2 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 48px;
+        color: #ff0000;
+        text-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 30px #ff0000, 0 0 40px #ff0000;
+        }
+
+        #address {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 24px;
+        color: #00ff41;
+        text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41, 0 0 40px #00ff41;
+        }
+
+
+    </style>
+</head>
+<body>
+    <h1>Neon Neko Nexus</h1>
+
+    <div id="game-over" style="display: none;">
+        <h2>Game Over!</h2>
+    </div>
+
+    <div id="game-container">
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Space Cat Game</title>
+            <style>
+                canvas {
+                    display: block;
+                    margin: 0 auto;
+                    background-color: #000;
+                }
+            </style>
+        </head>
+        <body>
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+        </body>
+        </html>
+    </div>
+
+    
+
+
+    <div id="not-allowed">
+        <h2>Access Denied</h2>
+        <p>You need to own a Timeless Tabbies token to access this game.</p>
+    </div>
+
+
+    <div id="overlay">
+        <div id="overlay-content">
+            <h2>Game Over!</h2>
+            <p><span id="address"></span></p>
+            <button id="restart-btn">Restart</button>
+        </div>
+    </div>
+
+    
+
+    <script>
+
+        const contractABI = JSON.parse('[{"inputs":[{"internalType":"address","name":"account","type":"address"},{"internalType":"uint256","name":"id","type":"uint256"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]');
+        const contractAddress = "0xfdcbeFd4babE3C5f90952B8c13D56dFF767d59EB"; // Your contract address
+        const itemId = 1;
+
+        async function startApp() {
+            if (typeof window.ethereum === 'undefined') {
+                console.error("MetaMask is not installed.");
+                document.getElementById("not-allowed").innerText = "Please install MetaMask to access this game.";
+                return;
+            }
+
+            const web3WithMetaMask = new Web3(Web3.givenProvider);
+            const web3WithInfura = new Web3("https://mainnet.infura.io/v3/8c9ed5a11ba84e6fb6dd2790a373ac79");
+
+            try {
+                // Request account access
+                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                const account = accounts[0];
+
+                const contract = new web3WithInfura.eth.Contract(contractABI, contractAddress);
+
+                const addressElement = document.getElementById('address');
+                addressElement.innerHTML = account;
+
+
+                contract.methods.balanceOf(account, itemId).call({ from: account }, (error, balance) => {
+                    if (error) {
+                        console.error(error);
+                        return;
+                    }
+
+                    if (parseInt(balance) > 0) {
+                        document.getElementById("game-container").style.display = "block";
+                        document.getElementById("not-allowed").style.display = "none";
+                        const script = document.createElement('script');
+                        script.src = 'game.js';
+                        script.onload = function() {
+                            document.dispatchEvent(new Event('gameScriptLoaded'));
+                        };
+                        document.body.appendChild(script)
+                    } else {
+                        document.getElementById("not-allowed").style.display = "block";
+                    }
+                });
+
+
+            } catch (error) {
+                console.error(error);
+                if (error.code === 4001) {
+                    // User rejected request
+                    
+                    document.getElementById("not-allowed").innerText = "Please allow access to MetaMask to play the game.";
+                }
+            }
+        }
+
+        window.addEventListener("load", startApp);
+    </script>
+
+</body>
+</html>

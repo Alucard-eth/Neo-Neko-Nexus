@@ -19,6 +19,10 @@ catSprite.src = 'neo-neko2_tp.png'; //Not currently used
 const obstacleSprite = new Image();
 obstacleSprite.src = 'cyberdog2_t.png'; //Not currently used
 
+const secondObjectImage = new Image();
+secondObjectImage.src = 'ethercoin.png'; // Your second object image
+
+
 const catFrameCount = 4; // Number of animation frames in the cat sprite sheet
 const catFrameWidth = catSprite.width / catFrameCount;
 const catFrameHeight = catSprite.height;
@@ -36,11 +40,12 @@ const gameOverSound = new Audio('gameover.wav');
 const loseLifeSound = new Audio('losing-life.wav');
 const backgroundMusic = new Audio('backgroundmusic.mp3');
 const spawnSound = new Audio('spawn.mp3');
+const collectSound = new Audio('collectcoin.mp3');
+
 
 
 backgroundMusic.loop = true;
 backgroundMusic.volume = 0.5; // Volume level between 0 (silent) and 1 (max)
-
 
 
 let playerHealth = 3;
@@ -51,6 +56,8 @@ const projectiles = [];
 const temporaryTexts = [];
 const explosions = [];
 const particles = [];
+const secondObjects = [];
+
 
 
 let backgroundX1 = 0;
@@ -58,6 +65,58 @@ let backgroundX2 = canvas.width;
 let score = 0;
 let obstaclesDestroyed = 0;
 
+
+const secondObjectSpawnRate = 150;
+
+function spawnSecondObject() {
+  const secondObject = {
+    x: canvas.width,
+    y: Math.random() * (canvas.height - 50),
+    width: 50,
+    height: 50,
+  };
+
+  secondObjects.push(secondObject);
+}
+
+function updateSecondObjects() {
+  for (let i = 0; i < secondObjects.length; i++) {
+    const secondObject = secondObjects[i];
+    secondObject.x -= obstacleSpeed;
+
+    if (secondObject.x + secondObject.width < 0) {
+      secondObjects.splice(i, 1);
+      i--;
+    }
+  }
+}
+
+function drawSecondObjects() {
+  for (const secondObject of secondObjects) {
+    ctx.drawImage(secondObjectImage, secondObject.x, secondObject.y, secondObject.width, secondObject.height);
+  }
+}
+
+
+function checkSecondObjectCollision() {
+  for (let i = 0; i < secondObjects.length; i++) {
+    const secondObject = secondObjects[i];
+
+    if (
+      cat.x < secondObject.x + secondObject.width &&
+      cat.x + cat.width > secondObject.x &&
+      cat.y < secondObject.y + secondObject.height &&
+      cat.y + cat.height > secondObject.y
+    ) {
+      secondObjects.splice(i, 1);
+      i--;
+
+      score += 100;
+      collectSound.play();
+      spawnTemporaryText(secondObject.x, secondObject.y, '+100', 30);
+    }
+  }
+}
 
 
 
@@ -180,7 +239,7 @@ function checkProjectileCollision() {
 
         playExplosionSound();
 
-        spawnTemporaryText(obstacle.x, obstacle.y, '+100', 30);
+        spawnTemporaryText(obstacle.x, obstacle.y, '+200', 30);
 
         score += 200;
         obstaclesDestroyed++;
@@ -387,6 +446,9 @@ function updateCat() {
   if (cat.y + cat.height > canvas.height) {
     cat.y = canvas.height - cat.height;
   }
+
+
+
 }
 
 
@@ -547,6 +609,7 @@ function drawHealth() {
 
 function startGame() {
 
+
   resetGameState();
 
   function restartListener() {
@@ -557,19 +620,25 @@ function startGame() {
     startGame();
   }
 
+
   function gameLoop() {
     if (gameFrame % obstacleSpawnRate === 0) {
       spawnObstacle();
     }
 
+    if (gameFrame % secondObjectSpawnRate === 0) {
+      spawnSecondObject();
+    }
+
     updateBackground();
     updateObstacles();
+    updateSecondObjects();
     updateCat();
     updateProjectiles();
     updateTemporaryTexts();
     updateExplosions();
     updateParticles();
-    
+    checkSecondObjectCollision();
 
 
     if (checkCollision(cat, obstacles)) {
@@ -582,6 +651,7 @@ function startGame() {
 
     draw();
     drawTemporaryTexts();
+    drawSecondObjects();
 
     gameFrame++;
     requestAnimationFrame(gameLoop);
@@ -590,9 +660,8 @@ function startGame() {
   gameLoop();
 }
 
-backgroundMusic.play();
-
 const gameScriptLoadedEvent = new Event('gameScriptLoaded');
 document.dispatchEvent(gameScriptLoadedEvent);
-startGame();
 
+
+startGame();
