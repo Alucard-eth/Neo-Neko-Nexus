@@ -11,19 +11,46 @@ const backgroundImage = new Image();
 backgroundImage.src = 'city1.png'; // Your background image
 
 const explosionImage = new Image();
-explosionImage.src = 'explosion.png'; // Replace with your explosion image path
+explosionImage.src = 'explosion.png';
+
+const catSprite = new Image();
+catSprite.src = 'neo-neko2_tp.png'; //Not currently used
+
+const obstacleSprite = new Image();
+obstacleSprite.src = 'cyberdog2_t.png'; //Not currently used
+
+const catFrameCount = 4; // Number of animation frames in the cat sprite sheet
+const catFrameWidth = catSprite.width / catFrameCount;
+const catFrameHeight = catSprite.height;
+
+const obstacleFrameCount = 4; // Number of animation frames in the obstacle sprite sheet
+const obstacleFrameWidth = obstacleSprite.width / obstacleFrameCount;
+const obstacleFrameHeight = obstacleSprite.height;
+
+
 
 
 const explosionSound = new Audio('explosion.wav');
 const laserSound = new Audio('laser.mp3');
 const gameOverSound = new Audio('gameover.wav');
+const loseLifeSound = new Audio('losing-life.wav');
+const backgroundMusic = new Audio('backgroundmusic.mp3');
+const spawnSound = new Audio('spawn.mp3');
 
 
+backgroundMusic.loop = true;
+backgroundMusic.volume = 0.5; // Volume level between 0 (silent) and 1 (max)
+
+
+
+let playerHealth = 3;
+const maxHealth = 3;
 
 
 const projectiles = [];
 const temporaryTexts = [];
 const explosions = [];
+const particles = [];
 
 
 let backgroundX1 = 0;
@@ -33,11 +60,33 @@ let obstaclesDestroyed = 0;
 
 
 
+
+
 function updateScore() {
   if (!checkProjectileCollision()) {
     score += 1;
   }
 }
+
+function spawnParticle(x, y) {
+  const numLines = 5; // Number of lines to create as particles
+  for (let i = 0; i < numLines; i++) {
+    const yOffset = (Math.random() - 0.5) * 30; // Random y-axis offset, adjust the multiplier to control the range
+    const particle = {
+      x: x,
+      y: y + yOffset, // Add the yOffset to the original y value
+      length: 10 + i * 5, // Length of the line
+      opacity: 1 - i * 0.15, // Varying opacity for each line
+      fadeSpeed: 0.02 + i * 0.003, // Varying fade-out speed for each line
+    };
+    particles.push(particle);
+  }
+}
+
+
+
+
+
 
 function playExplosionSound() {
   // Clone the audio element to allow overlapping sound effects
@@ -49,6 +98,12 @@ function playLaserSound() {
   laserSound.currentTime = 0;
   laserSound.play();
 }
+
+function playLoseLifeSound() {
+  loseLifeSound.currentTime = 0;
+  loseLifeSound.play();
+}
+
 
 function spawnExplosion(x, y) {
   const explosion = {
@@ -211,6 +266,7 @@ const cat = {
   y: canvas.height / 2,
   width: 50,
   height: 50,
+  frame: 0,
 };
 
 const obstacles = [];
@@ -225,18 +281,32 @@ function spawnObstacle() {
     y: Math.random() * (canvas.height - 50),
     width: 50,
     height: 50,
+    frame: 0,
   };
 
   obstacles.push(obstacle);
+  spawnSound.play();
 }
 
 function updateObstacles() {
+
+  for (const obstacle of obstacles) {
+    obstacle.frame = (obstacle.frame + 1) % obstacleFrameCount;
+  }
+
+
   const speedIncreaseFactor = 0.005;
   const currentSpeed = obstacleSpeed + speedIncreaseFactor * score;
 
   for (let i = 0; i < obstacles.length; i++) {
     const obstacle = obstacles[i];
     obstacle.x -= currentSpeed;
+
+
+    if (gameFrame % 4 === 0) {
+      spawnParticle(obstacle.x + obstacle.width, obstacle.y + obstacle.height / 2);
+    }
+
 
     if (obstacle.x + obstacle.width < 0) {
       obstacles.splice(i, 1);
@@ -245,23 +315,72 @@ function updateObstacles() {
   }
 }
 
-function checkCollision() {
-  for (const obstacle of obstacles) {
+function updateParticles() {
+  for (let i = 0; i < particles.length; i++) {
+    const particle = particles[i];
+    particle.x -= 1; // Adjust the particle speed
+    particle.opacity -= particle.fadeSpeed; // Adjust the fade-out speed
+
+    // Remove the particle if its opacity reaches 0
+    if (particle.opacity <= 0) {
+      particles.splice(i, 1);
+      i--;
+    }
+  }
+}
+
+function drawParticles() {
+  for (const particle of particles) {
+    const gradient = ctx.createLinearGradient(
+      particle.x, particle.y,
+      particle.x - particle.length, particle.y
+    );
+    gradient.addColorStop(0, `rgba(0, 127, 255, ${particle.opacity})`);
+    gradient.addColorStop(1, `rgba(0, 127, 255, 0)`);
+
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(particle.x, particle.y);
+    ctx.lineTo(particle.x - particle.length, particle.y);
+    ctx.stroke();
+  }
+}
+
+
+
+
+
+function checkCollision(cat, obstacles) {
+  for (let i = 0; i < obstacles.length; i++) {
+    const obstacle = obstacles[i];
     if (
       cat.x < obstacle.x + obstacle.width &&
       cat.x + cat.width > obstacle.x &&
       cat.y < obstacle.y + obstacle.height &&
       cat.y + cat.height > obstacle.y
     ) {
-      isGameOver = true;
-      return true;
+      // Remove the collided obstacle or reset its position
+      obstacles.splice(i, 1);
+      i--;
+
+      // Decrement cat (player) health
+      playerHealth--;
+      playLoseLifeSound();
+
+      if (playerHealth <= 0) {
+        return true;
+      }
     }
   }
-  updateScore();
   return false;
 }
 
+
+
+
 function updateCat() {
+  cat.frame = (cat.frame + 1) % catFrameCount;
   cat.y += 1;
 
   // Prevent the cat from going outside the lower boundary
@@ -282,7 +401,7 @@ canvas.addEventListener('contextmenu', (event) => {
   
   if (score >= 100) {
     spawnProjectile();
-    score -= 100;
+      score -= 100;
   }
 });
 
@@ -316,14 +435,19 @@ function draw() {
   drawScore();
   drawObstaclesDestroyed();
   drawExplosions();
+  drawHealth();
+  drawParticles();
 
   // Draw cat
   ctx.drawImage(catImage, cat.x, cat.y, cat.width, cat.height);
+
 
   // Draw obstacles
   for (const obstacle of obstacles) {
     ctx.drawImage(obstacleImage, obstacle.x, obstacle.y, obstacle.width, obstacle.height);
   }
+
+
 
   // Draw projectiles
   ctx.fillStyle = "red";
@@ -342,10 +466,25 @@ function draw() {
 function gameOver(restartListener) {
   const overlay = document.getElementById('overlay');
   overlay.style.display = 'block';
+  
+  backgroundMusic.pause();
+  backgroundMusic.currentTime = 0;
+  
   gameOverSound.play();
+
 
   const restartBtn = document.getElementById('restart-btn');
   restartBtn.addEventListener('click', restartListener);
+}
+
+function drawHeart(x, y, width, height) {
+  ctx.beginPath();
+  ctx.moveTo(x + width / 2, y + height / 4);
+  ctx.quadraticCurveTo(x, y, x + width / 4, y + height / 2);
+  ctx.quadraticCurveTo(x, y + height, x + width / 2, y + height);
+  ctx.quadraticCurveTo(x + width, y + height, x + (3 * width) / 4, y + height / 2);
+  ctx.quadraticCurveTo(x + width, y, x + width / 2, y + height / 4);
+  ctx.closePath();
 }
 
 
@@ -356,6 +495,11 @@ function resetGameState() {
   score = 0;
   obstaclesDestroyed = 0;
   cat.y = canvas.height / 2;
+  playerHealth = 3;
+
+  backgroundMusic.pause();
+  backgroundMusic.currentTime = 0;
+  backgroundMusic.play();
 }
 
 
@@ -377,6 +521,24 @@ function drawExplosions() {
 
   for (const explosion of explosions) {
     ctx.drawImage(explosionImage, explosion.x, explosion.y, explosionWidth, explosionHeight);
+  }
+}
+
+function drawHealth() {
+  const heartSize = 25;
+  const heartSpacing = 10;
+
+  for (let i = 0; i < maxHealth; i++) {
+    if (i < playerHealth) {
+      ctx.fillStyle = "red";
+      drawHeart(10 + i * (heartSize + heartSpacing), 70, heartSize, heartSize);
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      drawHeart(10 + i * (heartSize + heartSpacing), 70, heartSize, heartSize);
+      ctx.stroke();
+    }
   }
 }
 
@@ -406,13 +568,17 @@ function startGame() {
     updateProjectiles();
     updateTemporaryTexts();
     updateExplosions();
+    updateParticles();
+    
 
-    if (checkCollision()) {
+
+    if (checkCollision(cat, obstacles)) {
       gameOver(restartListener);
       return;
     }
 
     checkProjectileCollision();
+    updateScore();
 
     draw();
     drawTemporaryTexts();
@@ -424,7 +590,7 @@ function startGame() {
   gameLoop();
 }
 
-
+backgroundMusic.play();
 
 const gameScriptLoadedEvent = new Event('gameScriptLoaded');
 document.dispatchEvent(gameScriptLoadedEvent);
