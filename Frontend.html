@@ -100,6 +100,33 @@
 
     </style>
 </head>
+
+<script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.19.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.19.1/firebase-analytics.js";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+  
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyB2hZCWmoh6fVTHhSreyf8q8IGqFSKfjd4",
+      authDomain: "timeless-tabbies.firebaseapp.com",
+      projectId: "timeless-tabbies",
+      storageBucket: "timeless-tabbies.appspot.com",
+      messagingSenderId: "189789445320",
+      appId: "1:189789445320:web:daf416a4d7fc1d4c43d9fd",
+      measurementId: "G-3FW2X8KRE1"
+    };
+  
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const database = firebase.database();
+</script>
+
+
 <body>
     <h1>Neon Neko Nexus</h1>
 
@@ -116,9 +143,12 @@
             <title>Space Cat Game</title>
             <style>
                 canvas {
-                    display: block;
-                    margin: 0 auto;
-                    background-color: #000;
+                display: block;
+                margin: 0 auto;
+                background-color: #000;
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
                 }
             </style>
         </head>
@@ -165,6 +195,7 @@
 
             try {
                 // Request account access
+                //
                 const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
                 const account = accounts[0];
 
@@ -205,7 +236,19 @@
             }
         }
 
+        function resizeCanvas() {
+            const canvas = document.getElementById('gameCanvas');
+            const marginBottom = 200;
+            const maxHeight = 800;
+            const aspectRatio = 800 / 600;
+            canvas.height = Math.min(window.innerHeight - marginBottom, maxHeight);
+            canvas.width = canvas.height * aspectRatio;
+            canvas.style.marginBottom = marginBottom + 'px';
+        }
+
+        window.addEventListener('resize', resizeCanvas);
         window.addEventListener("load", startApp);
+        window.addEventListener("load", resizeCanvas);
     </script>
 
 </body>

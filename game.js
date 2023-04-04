@@ -41,7 +41,7 @@ const loseLifeSound = new Audio('losing-life.wav');
 const backgroundMusic = new Audio('backgroundmusic.mp3');
 const spawnSound = new Audio('spawn.mp3');
 const collectSound = new Audio('collectcoin.mp3');
-
+const NoammoSound = new Audio('noammo.mp3');
 
 
 backgroundMusic.loop = true;
@@ -67,6 +67,8 @@ let obstaclesDestroyed = 0;
 
 
 const secondObjectSpawnRate = 150;
+
+
 
 function spawnSecondObject() {
   const secondObject = {
@@ -156,6 +158,11 @@ function playExplosionSound() {
 function playLaserSound() {
   laserSound.currentTime = 0;
   laserSound.play();
+}
+
+function playNoAmmo() {
+  NoammoSound.currentTime = 0;
+  NoammoSound.play();
 }
 
 function playLoseLifeSound() {
@@ -465,6 +472,9 @@ canvas.addEventListener('contextmenu', (event) => {
     spawnProjectile();
       score -= 100;
   }
+  else{
+    playNoAmmo();
+  }
 });
 
 function updateCat() {
@@ -473,6 +483,7 @@ function updateCat() {
 
     // Adjust the cat's y position
     cat.y -= jumpHeight;
+
 
     // Prevent the cat from going outside the upper boundary
     if (cat.y < 0) {
