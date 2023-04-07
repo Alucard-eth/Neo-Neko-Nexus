@@ -68,7 +68,10 @@ let obstaclesDestroyed = 0;
 
 const secondObjectSpawnRate = 150;
 
+// FIREBASE IMPLEMENTATION ///
 
+
+////////////////////////////////
 
 function spawnSecondObject() {
   const secondObject = {
@@ -653,6 +656,7 @@ function startGame() {
 
 
     if (checkCollision(cat, obstacles)) {
+      //APIFirebase.SaveScore("0xccC4e8Ad313dF8150211B1b934725345924ab81D","300");
       gameOver(restartListener);
       return;
     }

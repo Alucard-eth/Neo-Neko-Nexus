@@ -101,30 +101,19 @@
     </style>
 </head>
 
-<script type="module">
-    // Import the functions you need from the SDKs you need
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.19.1/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.19.1/firebase-analytics.js";
-    // TODO: Add SDKs for Firebase products that you want to use
-    // https://firebase.google.com/docs/web/setup#available-libraries
-  
-    // Your web app's Firebase configuration
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-    const firebaseConfig = {
-      apiKey: "AIzaSyB2hZCWmoh6fVTHhSreyf8q8IGqFSKfjd4",
-      authDomain: "timeless-tabbies.firebaseapp.com",
-      projectId: "timeless-tabbies",
-      storageBucket: "timeless-tabbies.appspot.com",
-      messagingSenderId: "189789445320",
-      appId: "1:189789445320:web:daf416a4d7fc1d4c43d9fd",
-      measurementId: "G-3FW2X8KRE1"
-    };
-  
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const database = firebase.database();
-</script>
+
+<!--
+
+Firebase Implementation (In Progress)
+
+
+<script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-analytics.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-database.js"></script>
+
+<script type="module" src="firebase.js"></script>
+
+-->
 
 
 <body>
@@ -181,7 +170,7 @@
 
         const contractABI = JSON.parse('[{"inputs":[{"internalType":"address","name":"account","type":"address"},{"internalType":"uint256","name":"id","type":"uint256"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]');
         const contractAddress = "0xfdcbeFd4babE3C5f90952B8c13D56dFF767d59EB"; // Your contract address
-        const itemId = 1;
+        const tokenIds = [1, 2]; // Array of token IDs to check
 
         async function startApp() {
             if (typeof window.ethereum === 'undefined') {
@@ -192,6 +181,9 @@
 
             const web3WithMetaMask = new Web3(Web3.givenProvider);
             const web3WithInfura = new Web3("https://mainnet.infura.io/v3/8c9ed5a11ba84e6fb6dd2790a373ac79");
+            
+
+            
 
             try {
                 // Request account access
@@ -204,37 +196,49 @@
                 const addressElement = document.getElementById('address');
                 addressElement.innerHTML = account;
 
+                let hasToken = false;
 
-                contract.methods.balanceOf(account, itemId).call({ from: account }, (error, balance) => {
-                    if (error) {
-                        console.error(error);
+                async function checkTokens(tokenIndex) {
+                    if (tokenIndex >= tokenIds.length) {
+                      if (!hasToken) {
+                            document.getElementById("not-allowed").style.display = "block";
+                         }
                         return;
                     }
 
-                    if (parseInt(balance) > 0) {
-                        document.getElementById("game-container").style.display = "block";
-                        document.getElementById("not-allowed").style.display = "none";
-                        const script = document.createElement('script');
-                        script.src = 'game.js';
-                        script.onload = function() {
-                            document.dispatchEvent(new Event('gameScriptLoaded'));
-                        };
-                        document.body.appendChild(script)
-                    } else {
-                        document.getElementById("not-allowed").style.display = "block";
+                    try {
+                        const balance = await contract.methods.balanceOf(account, tokenIds[tokenIndex]).call({ from: account });
+
+                     if (parseInt(balance) > 0) {
+                            hasToken = true;
+                            document.getElementById("game-container").style.display = "block";
+                            document.getElementById("not-allowed").style.display = "none";
+                            const script = document.createElement('script');
+                            script.src = 'game.js';
+                            script.onload = function () {
+                             document.dispatchEvent(new Event('gameScriptLoaded'));
+                             };
+                            document.body.appendChild(script)
+                        } else {
+                            checkTokens(tokenIndex + 1);
+                        }
+                    }   catch (error) {
+                        console.error(error);
                     }
-                });
+                }
+                checkTokens(0);
 
-
-            } catch (error) {
+                } catch (error) {
                 console.error(error);
                 if (error.code === 4001) {
-                    // User rejected request
-                    
-                    document.getElementById("not-allowed").innerText = "Please allow access to MetaMask to play the game.";
+                 // User rejected request
+
+                 document.getElementById("not-allowed").innerText = "Please allow access to MetaMask to play the game.";
                 }
             }
+               
         }
+        
 
         function resizeCanvas() {
             const canvas = document.getElementById('gameCanvas');
